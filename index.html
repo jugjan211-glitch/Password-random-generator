@@ -3,29 +3,47 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Generator gesel in naključnih števil</title>
+<title>Password Manager</title>
 <style>
   body {
     font-family: Arial, sans-serif;
     background: #121212;
     color: #fff;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    padding: 20px;
+    margin: 0;
+    padding: 0;
   }
-  h1 {
+  header {
+    display: flex;
+    justify-content: space-between;
+    padding: 15px 25px;
+    background: #1e1e1e;
+  }
+  header h1 {
+    margin: 0;
     color: #00ff99;
+  }
+  #auth-btn {
+    cursor: pointer;
+    background: #00ff99;
+    color: #000;
+    border: none;
+    border-radius: 8px;
+    padding: 8px 15px;
+    font-weight: bold;
+    transition: 0.3s;
+  }
+  #auth-btn:hover {
+    background: #00cc77;
   }
   .container {
     background: #1e1e1e;
     padding: 20px;
     border-radius: 12px;
-    margin-bottom: 20px;
-    width: 100%;
+    margin: 20px auto;
+    width: 90%;
     max-width: 400px;
   }
-  input[type=number], input[type=text], select {
+  input, select {
     width: 100%;
     padding: 8px;
     margin: 5px 0 10px 0;
@@ -40,6 +58,7 @@
     cursor: pointer;
     font-weight: bold;
     width: 100%;
+    transition: 0.3s;
   }
   button:hover {
     background: #00cc77;
@@ -50,11 +69,16 @@
     text-align: center;
     word-break: break-all;
   }
+  ul { list-style: none; padding: 0; }
+  li { background: #2a2a2a; margin: 5px 0; padding: 10px; border-radius: 6px; }
 </style>
 </head>
 <body>
 
-<h1>Generator gesel in naključnih števil</h1>
+<header>
+  <h1>Password Manager</h1>
+  <button id="auth-btn">Prijava</button>
+</header>
 
 <div class="container">
   <h2>Generator gesel</h2>
@@ -68,48 +92,115 @@
   </select>
   <button onclick="generatePassword()">Generiraj geslo</button>
   <div class="result" id="passwordResult"></div>
+  <input type="text" id="passwordName" placeholder="Ime gesla (npr. Google)">
+  <button onclick="savePassword()">Shrani geslo</button>
 </div>
 
 <div class="container">
-  <h2>Generator naključnih števil</h2>
-  <label>Minimum:</label>
-  <input type="number" id="minNumber" value="1">
-  <label>Maximum:</label>
-  <input type="number" id="maxNumber" value="9999">
-  <button onclick="generateRandomNumber()">Generiraj naključno število</button>
-  <div class="result" id="numberResult"></div>
+  <h2>Moja shranjena gesla</h2>
+  <ul id="savedPasswords"></ul>
 </div>
 
-<script>
-function generatePassword() {
-  const length = parseInt(document.getElementById("passwordLength").value);
-  const type = document.getElementById("passwordType").value;
-  let chars = "";
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+  import { getAuth, onAuthStateChanged, signInWithPopup, GoogleAuthProvider, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+  import { getFirestore, collection, addDoc, getDocs, query, where } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-  if (type === "letters") chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
-  else if (type === "lettersNumbers") chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-  else if (type === "lettersNumbersSymbols") chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()_+-=[]{}|;:,.<>?";
+  // 🔹 TUKAJ VKLOPI SVOJE FIREBASE KLJUČE
+  const firebaseConfig = {
+    apiKey: "TVOJ_API_KEY",
+    authDomain: "TVOJ_PROJEKT.firebaseapp.com",
+    projectId: "TVOJ_PROJEKT",
+    storageBucket: "TVOJ_PROJEKT.appspot.com",
+    messagingSenderId: "XXXXXXXXX",
+    appId: "XXXXXXXXXXXXXXXXXXXXXXXXX"
+  };
 
-  let password = "";
-  for (let i = 0; i < length; i++) {
-    password += chars.charAt(Math.floor(Math.random() * chars.length));
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db = getFirestore(app);
+
+  const authBtn = document.getElementById("auth-btn");
+  const savedList = document.getElementById("savedPasswords");
+  let currentUser = null;
+
+  // 🔹 LOGIN / LOGOUT
+  authBtn.addEventListener("click", () => {
+    if (currentUser) {
+      signOut(auth);
+    } else {
+      const provider = new GoogleAuthProvider();
+      signInWithPopup(auth, provider);
+    }
+  });
+
+  onAuthStateChanged(auth, (user) => {
+    if (user) {
+      currentUser = user;
+      authBtn.textContent = "Odjava";
+      loadPasswords();
+    } else {
+      currentUser = null;
+      authBtn.textContent = "Prijava";
+      savedList.innerHTML = "<li>Za ogled gesel se prijavi.</li>";
+    }
+  });
+
+  // 🔹 GENERATOR
+  window.generatePassword = function() {
+    const length = parseInt(document.getElementById("passwordLength").value);
+    const type = document.getElementById("passwordType").value;
+    let chars = "";
+    if (type === "letters") chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
+    else if (type === "lettersNumbers") chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+    else if (type === "lettersNumbersSymbols") chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()_+-=[]{}|;:,.<>?";
+
+    let password = "";
+    for (let i = 0; i < length; i++) {
+      password += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    document.getElementById("passwordResult").textContent = password;
   }
 
-  document.getElementById("passwordResult").textContent = password;
-}
-
-function generateRandomNumber() {
-  const min = parseInt(document.getElementById("minNumber").value);
-  const max = parseInt(document.getElementById("maxNumber").value);
-  if (min > max) {
-    alert("Minimum ne sme biti večji od maksimuma!");
-    return;
+  // 🔹 SHRANJEVANJE
+  window.savePassword = async function() {
+    if (!currentUser) {
+      alert("Najprej se prijavi!");
+      return;
+    }
+    const password = document.getElementById("passwordResult").textContent;
+    const name = document.getElementById("passwordName").value.trim();
+    if (!password || !name) {
+      alert("Najprej generiraj geslo in vpiši ime!");
+      return;
+    }
+    await addDoc(collection(db, "passwords"), {
+      uid: currentUser.uid,
+      name: name,
+      password: password
+    });
+    document.getElementById("passwordName").value = "";
+    loadPasswords();
   }
-  const number = Math.floor(Math.random() * (max - min + 1)) + min;
-  document.getElementById("numberResult").textContent = number;
-}
+
+  // 🔹 NALOŽI GESLA
+  async function loadPasswords() {
+    if (!currentUser) return;
+    const q = query(collection(db, "passwords"), where("uid", "==", currentUser.uid));
+    const querySnapshot = await getDocs(q);
+    if (querySnapshot.empty) {
+      savedList.innerHTML = "<li>Nimate še nobenih shranjenih gesel.</li>";
+    } else {
+      savedList.innerHTML = "";
+      querySnapshot.forEach(doc => {
+        const data = doc.data();
+        const li = document.createElement("li");
+        li.textContent = `${data.name}: ${data.password}`;
+        savedList.appendChild(li);
+      });
+    }
+  }
 </script>
 
 </body>
 </html>
-                        
