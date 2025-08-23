@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="sl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Generator gesel in naključnih števil</title>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    background: #121212;
+    color: #fff;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px;
+  }
+  h1 {
+    color: #00ff99;
+  }
+  .container {
+    background: #1e1e1e;
+    padding: 20px;
+    border-radius: 12px;
+    margin-bottom: 20px;
+    width: 100%;
+    max-width: 400px;
+  }
+  input[type=number], input[type=text], select {
+    width: 100%;
+    padding: 8px;
+    margin: 5px 0 10px 0;
+    border-radius: 6px;
+    border: none;
+  }
+  button {
+    background: #00ff99;
+    border: none;
+    padding: 10px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: bold;
+    width: 100%;
+  }
+  button:hover {
+    background: #00cc77;
+  }
+  .result {
+    margin-top: 10px;
+    font-size: 1.2em;
+    text-align: center;
+    word-break: break-all;
+  }
+</style>
+</head>
+<body>
+
+<h1>Generator gesel in naključnih števil</h1>
+
+<div class="container">
+  <h2>Generator gesel</h2>
+  <label>Dolžina gesla:</label>
+  <input type="number" id="passwordLength" value="12" min="4" max="64">
+  <label>Tip gesla:</label>
+  <select id="passwordType">
+    <option value="letters">Samo črke</option>
+    <option value="lettersNumbers">Črke + številke</option>
+    <option value="lettersNumbersSymbols">Črke + številke + simboli</option>
+  </select>
+  <button onclick="generatePassword()">Generiraj geslo</button>
+  <div class="result" id="passwordResult"></div>
+</div>
+
+<div class="container">
+  <h2>Generator naključnih števil</h2>
+  <label>Minimum:</label>
+  <input type="number" id="minNumber" value="1">
+  <label>Maximum:</label>
+  <input type="number" id="maxNumber" value="9999">
+  <button onclick="generateRandomNumber()">Generiraj naključno število</button>
+  <div class="result" id="numberResult"></div>
+</div>
+
+<script>
+function generatePassword() {
+  const length = parseInt(document.getElementById("passwordLength").value);
+  const type = document.getElementById("passwordType").value;
+  let chars = "";
+
+  if (type === "letters") chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
+  else if (type === "lettersNumbers") chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+  else if (type === "lettersNumbersSymbols") chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()_+-=[]{}|;:,.<>?";
+
+  let password = "";
+  for (let i = 0; i < length; i++) {
+    password += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+
+  document.getElementById("passwordResult").textContent = password;
+}
+
+function generateRandomNumber() {
+  const min = parseInt(document.getElementById("minNumber").value);
+  const max = parseInt(document.getElementById("maxNumber").value);
+  if (min > max) {
+    alert("Minimum ne sme biti večji od maksimuma!");
+    return;
+  }
+  const number = Math.floor(Math.random() * (max - min + 1)) + min;
+  document.getElementById("numberResult").textContent = number;
+}
+</script>
+
+</body>
+</html>
+                        
