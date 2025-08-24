@@ -3,43 +3,27 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Password Manager & Generator</title>
+<title>Password Manager</title>
 <style>
   body {
     font-family: Arial, sans-serif;
     background: #121212;
     color: #fff;
-    margin: 0;
-    padding: 0;
-  }
-  header {
     display: flex;
-    justify-content: space-between;
-    padding: 15px 20px;
-    background: #1e1e1e;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px;
   }
-  header h1 {
+  h1 {
     color: #00ff99;
-    margin: 0;
-  }
-  header button {
-    background: #00ff99;
-    border: none;
-    padding: 8px 15px;
-    border-radius: 6px;
-    cursor: pointer;
-    font-weight: bold;
-  }
-  header button:hover {
-    background: #00cc77;
   }
   .container {
     background: #1e1e1e;
     padding: 20px;
     border-radius: 12px;
-    margin: 20px auto;
-    width: 90%;
-    max-width: 500px;
+    margin-bottom: 20px;
+    width: 100%;
+    max-width: 400px;
   }
   input, select {
     width: 100%;
@@ -56,6 +40,7 @@
     cursor: pointer;
     font-weight: bold;
     width: 100%;
+    margin-top: 5px;
   }
   button:hover {
     background: #00cc77;
@@ -66,53 +51,82 @@
     text-align: center;
     word-break: break-all;
   }
-  .password-item {
+  #topbar {
+    position: absolute;
+    top: 10px;
+    right: 20px;
+  }
+  #savedList div {
     background: #2c2c2c;
-    padding: 10px;
     margin: 5px 0;
+    padding: 10px;
     border-radius: 6px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
+    cursor: pointer;
+  }
+  #savedList div:hover {
+    background: #3c3c3c;
   }
 </style>
 </head>
 <body>
 
-<header>
-  <h1>Password Manager</h1>
-  <button id="authButton">Prijava</button>
-</header>
+<div id="topbar">
+  <button id="loginBtn" onclick="showLogin()">Login</button>
+  <button id="logoutBtn" onclick="logout()" style="display:none;">Logout</button>
+</div>
+
+<h1>Password & Number Generator</h1>
 
 <div class="container">
-  <h2>Generator gesel</h2>
-  <label>Dolžina gesla:</label>
+  <h2>Password Generator</h2>
+  <label>Password length:</label>
   <input type="number" id="passwordLength" value="12" min="4" max="64">
-  <label>Tip gesla:</label>
+  <label>Password type:</label>
   <select id="passwordType">
-    <option value="letters">Samo črke</option>
-    <option value="lettersNumbers">Črke + številke</option>
-    <option value="lettersNumbersSymbols">Črke + številke + simboli</option>
+    <option value="letters">Letters only</option>
+    <option value="lettersNumbers">Letters + Numbers</option>
+    <option value="lettersNumbersSymbols">Letters + Numbers + Symbols</option>
   </select>
-  <button onclick="generatePassword()">Generiraj geslo</button>
+  <button onclick="generatePassword()">Generate Password</button>
   <div class="result" id="passwordResult"></div>
-  <button onclick="savePassword()">💾 Shrani geslo</button>
+  <button onclick="savePassword()">Save Password</button>
+  <button onclick="showSavedPasswords()">Saved Passwords</button>
 </div>
 
 <div class="container">
-  <h2>Shranjena gesla</h2>
-  <input type="text" id="searchInput" placeholder="Išči po imenu...">
-  <div id="savedPasswords"></div>
+  <h2>Number Generator</h2>
+  <label>Minimum:</label>
+  <input type="number" id="minNumber" value="1">
+  <label>Maximum:</label>
+  <input type="number" id="maxNumber" value="9999">
+  <button onclick="generateRandomNumber()">Generate Random Number</button>
+  <div class="result" id="numberResult"></div>
 </div>
 
-<!-- Firebase SDK -->
-<script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-  import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-  import { getFirestore, collection, addDoc, getDocs, query, where } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+<!-- Saved passwords view -->
+<div class="container" id="savedPasswordsContainer" style="display:none;">
+  <h2>Saved Passwords</h2>
+  <input type="text" id="searchSaved" placeholder="Search..." onkeyup="searchPasswords()">
+  <div id="savedList"></div>
+</div>
 
-  // 🔑 TUKAJ prilepi svoj firebaseConfig
-  const firebaseConfig = {
+<!-- Login form -->
+<div class="container" id="loginContainer" style="display:none;">
+  <h2>Login / Register</h2>
+  <input type="email" id="loginEmail" placeholder="Email">
+  <input type="password" id="loginPassword" placeholder="Password">
+  <button onclick="login()">Login</button>
+  <button onclick="register()">Register</button>
+</div>
+
+<script type="module">
+// Firebase imports
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { getFirestore, collection, addDoc, getDocs, query, where } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+// Your Firebase config
+const firebaseConfig = {
   apiKey: "AIzaSyD6wyq8fLh4QiW2PP0e22I9pyACRNvSPkc",
   authDomain: "pasword-manager-d4ab6.firebaseapp.com",
   projectId: "pasword-manager-d4ab6",
@@ -122,113 +136,146 @@
   measurementId: "G-2MJKRG9TMN"
 };
 
-  const app = initializeApp(firebaseConfig);
-  const auth = getAuth(app);
-  const db = getFirestore(app);
+// Init Firebase
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
 
-  // UI elementi
-  const authButton = document.getElementById("authButton");
-  const passwordResult = document.getElementById("passwordResult");
-  const savedPasswordsDiv = document.getElementById("savedPasswords");
-  const searchInput = document.getElementById("searchInput");
+// Auth UI logic
+onAuthStateChanged(auth, (user) => {
+  if (user) {
+    document.getElementById("loginBtn").style.display = "none";
+    document.getElementById("logoutBtn").style.display = "inline-block";
+  } else {
+    document.getElementById("loginBtn").style.display = "inline-block";
+    document.getElementById("logoutBtn").style.display = "none";
+  }
+});
 
-  // ✅ Prijava / Odjava gumb
-  onAuthStateChanged(auth, (user) => {
-    if (user) {
-      authButton.textContent = "Odjava";
-      loadPasswords();
+// Password generator
+function generatePassword() {
+  const length = parseInt(document.getElementById("passwordLength").value);
+  const type = document.getElementById("passwordType").value;
+  let chars = "";
+
+  if (type === "letters") chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
+  else if (type === "lettersNumbers") chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+  else if (type === "lettersNumbersSymbols") chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()_+-=[]{}|;:,.<>?";
+
+  let password = "";
+  for (let i = 0; i < length; i++) {
+    password += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+
+  document.getElementById("passwordResult").textContent = password;
+}
+
+// Random number
+function generateRandomNumber() {
+  const min = parseInt(document.getElementById("minNumber").value);
+  const max = parseInt(document.getElementById("maxNumber").value);
+  if (min > max) {
+    alert("Min cannot be greater than max!");
+    return;
+  }
+  const number = Math.floor(Math.random() * (max - min + 1)) + min;
+  document.getElementById("numberResult").textContent = number;
+}
+
+// Save password
+async function savePassword() {
+  const user = auth.currentUser;
+  if (!user) {
+    alert("Please login to save passwords!");
+    showLogin();
+    return;
+  }
+  const password = document.getElementById("passwordResult").textContent;
+  if (!password) {
+    alert("Generate a password first!");
+    return;
+  }
+  const name = prompt("Enter a name for this password (e.g. Google, Instagram):");
+  if (!name) return;
+  await addDoc(collection(db, "passwords"), {
+    uid: user.uid,
+    name: name,
+    password: password,
+    created: new Date()
+  });
+  alert("Password saved!");
+}
+
+// Show saved passwords
+async function showSavedPasswords() {
+  const user = auth.currentUser;
+  if (!user) {
+    alert("Please login to see saved passwords!");
+    showLogin();
+    return;
+  }
+  document.getElementById("savedPasswordsContainer").style.display = "block";
+  const q = query(collection(db, "passwords"), where("uid", "==", user.uid));
+  const querySnapshot = await getDocs(q);
+  const savedList = document.getElementById("savedList");
+  savedList.innerHTML = "";
+  querySnapshot.forEach((doc) => {
+    const item = document.createElement("div");
+    item.textContent = doc.data().name;
+    item.onclick = () => {
+      navigator.clipboard.writeText(doc.data().password);
+      item.textContent = doc.data().name + " (copied!)";
+      setTimeout(() => {
+        item.textContent = doc.data().name;
+      }, 3000);
+    };
+    savedList.appendChild(item);
+  });
+}
+
+// Search passwords
+function searchPasswords() {
+  const filter = document.getElementById("searchSaved").value.toLowerCase();
+  const items = document.querySelectorAll("#savedList div");
+  items.forEach(item => {
+    if (item.textContent.toLowerCase().includes(filter)) {
+      item.style.display = "block";
     } else {
-      authButton.textContent = "Prijava";
-      savedPasswordsDiv.innerHTML = "<p>Prijavi se, da vidiš gesla.</p>";
+      item.style.display = "none";
     }
   });
+}
 
-  authButton.addEventListener("click", async () => {
-    const user = auth.currentUser;
-    if (user) {
-      await signOut(auth);
-    } else {
-      const email = prompt("Vnesi email:");
-      const password = prompt("Vnesi geslo:");
-      try {
-        await signInWithEmailAndPassword(auth, email, password);
-      } catch (e) {
-        await createUserWithEmailAndPassword(auth, email, password);
-      }
-    }
-  });
-
-  // ✅ Generator gesel
-  window.generatePassword = function() {
-    const length = parseInt(document.getElementById("passwordLength").value);
-    const type = document.getElementById("passwordType").value;
-    let chars = "";
-    if (type === "letters") chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
-    else if (type === "lettersNumbers") chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-    else if (type === "lettersNumbersSymbols") chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()_+-=[]{}|;:,.<>?";
-
-    let password = "";
-    for (let i = 0; i < length; i++) {
-      password += chars.charAt(Math.floor(Math.random() * chars.length));
-    }
-    passwordResult.textContent = password;
+// Login/Register/Logout
+function showLogin() {
+  document.getElementById("loginContainer").style.display = "block";
+}
+async function login() {
+  const email = document.getElementById("loginEmail").value;
+  const pass = document.getElementById("loginPassword").value;
+  try {
+    await signInWithEmailAndPassword(auth, email, pass);
+    document.getElementById("loginContainer").style.display = "none";
+  } catch (e) {
+    alert("Login failed: " + e.message);
   }
-
-  // ✅ Shrani geslo
-  window.savePassword = async function() {
-    const user = auth.currentUser;
-    if (!user) {
-      alert("Moraš biti prijavljen, da shraniš geslo!");
-      return;
-    }
-    if (!passwordResult.textContent) {
-      alert("Najprej generiraj geslo!");
-      return;
-    }
-    const name = prompt("Podaj ime za geslo (npr. Google, IG...)");
-    if (!name) return;
-    await addDoc(collection(db, "passwords"), {
-      uid: user.uid,
-      name: name,
-      password: passwordResult.textContent
-    });
-    loadPasswords();
+}
+async function register() {
+  const email = document.getElementById("loginEmail").value;
+  const pass = document.getElementById("loginPassword").value;
+  try {
+    await createUserWithEmailAndPassword(auth, email, pass);
+    alert("Account created!");
+    document.getElementById("loginContainer").style.display = "none";
+  } catch (e) {
+    alert("Register failed: " + e.message);
   }
-
-  // ✅ Naloži shranjena gesla
-  async function loadPasswords() {
-    const user = auth.currentUser;
-    if (!user) return;
-    const q = query(collection(db, "passwords"), where("uid", "==", user.uid));
-    const querySnapshot = await getDocs(q);
-    savedPasswordsDiv.innerHTML = "";
-    querySnapshot.forEach((doc) => {
-      const data = doc.data();
-      const div = document.createElement("div");
-      div.className = "password-item";
-      div.innerHTML = `<span>🔑 ${data.name}</span> <button onclick="revealPassword('${data.password}')">Prikaži</button>`;
-      savedPasswordsDiv.appendChild(div);
-    });
-  }
-
-  // ✅ Prikaži geslo + auto copy + timer
-  window.revealPassword = function(pass) {
-    alert("Tvoje geslo: " + pass + " (kopirano v odložišče, vidno 5s)");
-    navigator.clipboard.writeText(pass);
-    setTimeout(() => {
-      console.clear();
-    }, 5000);
-  }
-
-  // ✅ Iskanje gesel
-  searchInput.addEventListener("input", () => {
-    const term = searchInput.value.toLowerCase();
-    const items = document.querySelectorAll(".password-item");
-    items.forEach(item => {
-      const text = item.textContent.toLowerCase();
-      item.style.display = text.includes(term) ? "flex" : "none";
-    });
-  });
+}
+async function logout() {
+  await signOut(auth);
+  alert("Logged out!");
+}
 </script>
+
 </body>
 </html>
