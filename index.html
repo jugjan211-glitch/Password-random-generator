@@ -1,280 +1,159 @@
 <!DOCTYPE html>
-<html lang="sl">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Password Manager</title>
+<title>Password Manager & Random Generator</title>
 <style>
-  body {
-    font-family: Arial, sans-serif;
-    background: #121212;
-    color: #fff;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    padding: 20px;
-  }
-  h1 {
-    color: #00ff99;
-  }
-  .container {
-    background: #1e1e1e;
-    padding: 20px;
-    border-radius: 12px;
-    margin-bottom: 20px;
-    width: 100%;
-    max-width: 400px;
-  }
-  input, select {
-    width: 100%;
-    padding: 8px;
-    margin: 5px 0 10px 0;
-    border-radius: 6px;
-    border: none;
-  }
-  button {
-    background: #00ff99;
-    border: none;
-    padding: 10px;
-    border-radius: 6px;
-    cursor: pointer;
-    font-weight: bold;
-    width: 100%;
-    margin-top: 5px;
-  }
-  button:hover {
-    background: #00cc77;
-  }
-  .result {
-    margin-top: 10px;
-    font-size: 1.2em;
-    text-align: center;
-    word-break: break-all;
-  }
-  #topbar {
-    position: absolute;
-    top: 10px;
-    right: 20px;
-  }
-  #savedList div {
-    background: #2c2c2c;
-    margin: 5px 0;
-    padding: 10px;
-    border-radius: 6px;
-    cursor: pointer;
-  }
-  #savedList div:hover {
-    background: #3c3c3c;
-  }
+  body { font-family: Arial; background:#121212; color:#fff; display:flex; flex-direction:column; align-items:center; padding:20px; }
+  h1 { color:#00ff99; }
+  .navbar { width:100%; max-width:400px; display:flex; justify-content:space-between; margin-bottom:20px; }
+  .navbar button { width:auto; margin-left:5px; }
+  .container { background:#1e1e1e; padding:20px; border-radius:12px; margin-bottom:20px; width:100%; max-width:400px; }
+  input, select { width:100%; padding:8px; margin:5px 0 10px 0; border-radius:6px; border:none; }
+  button { background:#00ff99; border:none; padding:10px; border-radius:6px; cursor:pointer; font-weight:bold; width:100%; }
+  button:hover { background:#00cc77; }
+  .result { margin-top:10px; font-size:1.2em; text-align:center; word-break:break-all; }
+  #savedList button { width:100%; margin-bottom:5px; }
 </style>
 </head>
 <body>
 
-<div id="topbar">
-  <button id="loginBtn" onclick="showLogin()">Login</button>
-  <button id="logoutBtn" onclick="logout()" style="display:none;">Logout</button>
-</div>
+<h1>Password Manager & Random Generator</h1>
 
-<h1>Password & Number Generator</h1>
+<div class="navbar">
+  <button id="loginBtn">Login</button>
+  <button id="savePasswordBtn">Save Password</button>
+  <button id="viewSavedBtn">Saved Passwords</button>
+</div>
 
 <div class="container">
   <h2>Password Generator</h2>
-  <label>Password length:</label>
+  <label>Password Length:</label>
   <input type="number" id="passwordLength" value="12" min="4" max="64">
-  <label>Password type:</label>
+  <label>Password Type:</label>
   <select id="passwordType">
-    <option value="letters">Letters only</option>
+    <option value="letters">Letters Only</option>
     <option value="lettersNumbers">Letters + Numbers</option>
     <option value="lettersNumbersSymbols">Letters + Numbers + Symbols</option>
   </select>
   <button onclick="generatePassword()">Generate Password</button>
   <div class="result" id="passwordResult"></div>
-  <button onclick="savePassword()">Save Password</button>
-  <button onclick="showSavedPasswords()">Saved Passwords</button>
 </div>
 
 <div class="container">
-  <h2>Number Generator</h2>
-  <label>Minimum:</label>
+  <h2>Random Number Generator</h2>
+  <label>Min:</label>
   <input type="number" id="minNumber" value="1">
-  <label>Maximum:</label>
+  <label>Max:</label>
   <input type="number" id="maxNumber" value="9999">
   <button onclick="generateRandomNumber()">Generate Random Number</button>
   <div class="result" id="numberResult"></div>
 </div>
 
-<!-- Saved passwords view -->
-<div class="container" id="savedPasswordsContainer" style="display:none;">
+<div class="container" id="savedContainer" style="display:none;">
   <h2>Saved Passwords</h2>
-  <input type="text" id="searchSaved" placeholder="Search..." onkeyup="searchPasswords()">
   <div id="savedList"></div>
 </div>
 
-<!-- Login form -->
-<div class="container" id="loginContainer" style="display:none;">
-  <h2>Login / Register</h2>
-  <input type="email" id="loginEmail" placeholder="Email">
-  <input type="password" id="loginPassword" placeholder="Password">
-  <button onclick="login()">Login</button>
-  <button onclick="register()">Register</button>
-</div>
-
+<!-- Firebase SDK -->
 <script type="module">
-// Firebase imports
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import { getFirestore, collection, addDoc, getDocs, query, where } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+// Import the functions you need from the SDKs
+import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
+import { getAnalytics } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-analytics.js";
+import { getAuth, onAuthStateChanged, signInWithPopup, GoogleAuthProvider, signOut } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
+import { getFirestore, collection, addDoc, query, where, getDocs } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
 
-// Your Firebase config
+// Firebase config
 const firebaseConfig = {
   apiKey: "AIzaSyD6wyq8fLh4QiW2PP0e22I9pyACRNvSPkc",
   authDomain: "pasword-manager-d4ab6.firebaseapp.com",
   projectId: "pasword-manager-d4ab6",
-  storageBucket: "pasword-manager-d4ab6.firebasestorage.app",
+  storageBucket: "pasword-manager-d4ab6.appspot.com",
   messagingSenderId: "1070489046614",
   appId: "1:1070489046614:web:96f8fcd64b4a0a939e75f7",
   measurementId: "G-2MJKRG9TMN"
 };
 
-// Init Firebase
+// Initialize Firebase
 const app = initializeApp(firebaseConfig);
+const analytics = getAnalytics(app);
 const auth = getAuth(app);
 const db = getFirestore(app);
+const provider = new GoogleAuthProvider();
 
-// Auth UI logic
+// Auth state
+let currentUser = null;
 onAuthStateChanged(auth, (user) => {
-  if (user) {
-    document.getElementById("loginBtn").style.display = "none";
-    document.getElementById("logoutBtn").style.display = "inline-block";
-  } else {
-    document.getElementById("loginBtn").style.display = "inline-block";
-    document.getElementById("logoutBtn").style.display = "none";
-  }
+  currentUser = user;
+  document.getElementById("loginBtn").textContent = user ? "Logout" : "Login";
 });
 
-// Password generator
+// Login / Logout
+document.getElementById("loginBtn").onclick = async () => {
+  if (!currentUser) {
+    await signInWithPopup(auth, provider);
+  } else {
+    await signOut(auth);
+  }
+};
+
+// Generate Password
 function generatePassword() {
   const length = parseInt(document.getElementById("passwordLength").value);
   const type = document.getElementById("passwordType").value;
   let chars = "";
-
   if (type === "letters") chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
   else if (type === "lettersNumbers") chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-  else if (type === "lettersNumbersSymbols") chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()_+-=[]{}|;:,.<>?";
-
+  else chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()_+-=[]{}|;:,.<>?";
   let password = "";
-  for (let i = 0; i < length; i++) {
-    password += chars.charAt(Math.floor(Math.random() * chars.length));
-  }
-
+  for (let i=0;i<length;i++){ password += chars.charAt(Math.floor(Math.random()*chars.length)); }
   document.getElementById("passwordResult").textContent = password;
 }
 
-// Random number
+// Generate Random Number
 function generateRandomNumber() {
   const min = parseInt(document.getElementById("minNumber").value);
   const max = parseInt(document.getElementById("maxNumber").value);
-  if (min > max) {
-    alert("Min cannot be greater than max!");
-    return;
-  }
-  const number = Math.floor(Math.random() * (max - min + 1)) + min;
+  if (min > max) { alert("Min cannot be larger than max!"); return; }
+  const number = Math.floor(Math.random()*(max-min+1))+min;
   document.getElementById("numberResult").textContent = number;
 }
 
-// Save password
-async function savePassword() {
-  const user = auth.currentUser;
-  if (!user) {
-    alert("Please login to save passwords!");
-    showLogin();
-    return;
-  }
+// Save Password
+document.getElementById("savePasswordBtn").onclick = async () => {
+  if (!currentUser) { alert("Please login first!"); return; }
   const password = document.getElementById("passwordResult").textContent;
-  if (!password) {
-    alert("Generate a password first!");
-    return;
-  }
-  const name = prompt("Enter a name for this password (e.g. Google, Instagram):");
+  if (!password) { alert("Generate a password first!"); return; }
+  const name = prompt("Enter a name for this password:");
   if (!name) return;
   await addDoc(collection(db, "passwords"), {
-    uid: user.uid,
+    uid: currentUser.uid,
     name: name,
-    password: password,
-    created: new Date()
+    password: password
   });
   alert("Password saved!");
-}
+};
 
-// Show saved passwords
-async function showSavedPasswords() {
-  const user = auth.currentUser;
-  if (!user) {
-    alert("Please login to see saved passwords!");
-    showLogin();
-    return;
-  }
-  document.getElementById("savedPasswordsContainer").style.display = "block";
-  const q = query(collection(db, "passwords"), where("uid", "==", user.uid));
+// View Saved Passwords
+document.getElementById("viewSavedBtn").onclick = async () => {
+  if (!currentUser) { alert("Please login first!"); return; }
+  const savedContainer = document.getElementById("savedContainer");
+  const listDiv = document.getElementById("savedList");
+  listDiv.innerHTML = "";
+  const q = query(collection(db,"passwords"), where("uid","==",currentUser.uid));
   const querySnapshot = await getDocs(q);
-  const savedList = document.getElementById("savedList");
-  savedList.innerHTML = "";
-  querySnapshot.forEach((doc) => {
-    const item = document.createElement("div");
-    item.textContent = doc.data().name;
-    item.onclick = () => {
+  querySnapshot.forEach(doc => {
+    const btn = document.createElement("button");
+    btn.textContent = doc.data().name;
+    btn.onclick = () => {
       navigator.clipboard.writeText(doc.data().password);
-      item.textContent = doc.data().name + " (copied!)";
-      setTimeout(() => {
-        item.textContent = doc.data().name;
-      }, 3000);
+      alert("Password copied to clipboard: "+doc.data().password);
     };
-    savedList.appendChild(item);
+    listDiv.appendChild(btn);
   });
-}
-
-// Search passwords
-function searchPasswords() {
-  const filter = document.getElementById("searchSaved").value.toLowerCase();
-  const items = document.querySelectorAll("#savedList div");
-  items.forEach(item => {
-    if (item.textContent.toLowerCase().includes(filter)) {
-      item.style.display = "block";
-    } else {
-      item.style.display = "none";
-    }
-  });
-}
-
-// Login/Register/Logout
-function showLogin() {
-  document.getElementById("loginContainer").style.display = "block";
-}
-async function login() {
-  const email = document.getElementById("loginEmail").value;
-  const pass = document.getElementById("loginPassword").value;
-  try {
-    await signInWithEmailAndPassword(auth, email, pass);
-    document.getElementById("loginContainer").style.display = "none";
-  } catch (e) {
-    alert("Login failed: " + e.message);
-  }
-}
-async function register() {
-  const email = document.getElementById("loginEmail").value;
-  const pass = document.getElementById("loginPassword").value;
-  try {
-    await createUserWithEmailAndPassword(auth, email, pass);
-    alert("Account created!");
-    document.getElementById("loginContainer").style.display = "none";
-  } catch (e) {
-    alert("Register failed: " + e.message);
-  }
-}
-async function logout() {
-  await signOut(auth);
-  alert("Logged out!");
-}
+  savedContainer.style.display = "block";
+};
 </script>
 
 </body>
