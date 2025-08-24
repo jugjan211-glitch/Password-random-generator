@@ -3,38 +3,106 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Password Manager & Random Generator</title>
+<title>Password Manager</title>
 <style>
-  body { font-family: Arial; background:#121212; color:#fff; display:flex; flex-direction:column; align-items:center; padding:20px; transition:0.3s; }
+  body {
+    font-family: Arial;
+    background:#121212; color:#fff;
+    margin:0; padding:0;
+    transition:0.3s;
+  }
   body.light { background:#f5f5f5; color:#000; }
-  h1 { color:#00ff99; }
-  .navbar { width:100%; max-width:500px; display:flex; justify-content:space-between; margin-bottom:20px; gap:5px; }
-  .navbar button { width:auto; }
-  .container { background:#1e1e1e; padding:20px; border-radius:12px; margin-bottom:20px; width:100%; max-width:500px; transition:0.3s; }
+  h1 { color:#00ff99; text-align:center; padding:20px; }
+
+  /* Navbar */
+  .navbar { 
+    display:flex; justify-content:flex-end;
+    padding:10px 20px; position:relative;
+  }
+  #loginBtn {
+    background:none; border:none; cursor:pointer; font-size:1.5em;
+  }
+
+  /* Main buttons */
+  .actions {
+    display:flex; justify-content:center; gap:10px; flex-wrap:wrap;
+    margin-bottom:20px;
+  }
+  .actions button {
+    background:#00ff99; border:none; padding:10px 20px;
+    border-radius:6px; cursor:pointer; font-weight:bold;
+  }
+  .actions button:hover { background:#00cc77; }
+
+  /* Containers */
+  .container {
+    background:#1e1e1e; padding:20px; border-radius:12px;
+    margin:10px auto; width:90%; max-width:600px; transition:0.3s;
+  }
   body.light .container { background:#fff; color:#000; }
-  input, select { width:100%; padding:8px; margin:5px 0 10px 0; border-radius:6px; border:none; }
-  button { background:#00ff99; border:none; padding:10px; border-radius:6px; cursor:pointer; font-weight:bold; }
-  button:hover { background:#00cc77; }
-  .result { margin-top:10px; font-size:1.2em; text-align:center; word-break:break-all; opacity:0; transition:opacity 0.8s; }
+
+  input, select {
+    width:100%; padding:8px; margin:5px 0 10px 0;
+    border-radius:6px; border:none;
+  }
+  .result {
+    margin-top:10px; font-size:1.2em; text-align:center;
+    word-break:break-all; opacity:0; transition:opacity 0.8s;
+  }
   .result.show { opacity:1; }
-  #savedList div { display:flex; justify-content:space-between; align-items:center; margin-bottom:5px; }
-  #savedList button { margin-left:5px; }
+
+  /* Saved passwords */
+  .card {
+    background:#2a2a2a; padding:10px; border-radius:8px;
+    margin-bottom:10px; display:flex; justify-content:space-between; align-items:center;
+    flex-wrap:wrap; gap:5px;
+  }
+  body.light .card { background:#f0f0f0; }
+
   .strength { font-weight:bold; margin-top:10px; text-align:center; }
   .strength.weak { color:red; }
   .strength.medium { color:orange; }
   .strength.strong { color:lime; }
+
+  /* Fixed buttons bottom */
+  .fixed-btn {
+    position:fixed; bottom:20px; font-size:1.5em;
+    background:#00ff99; border:none; border-radius:50%;
+    width:50px; height:50px; cursor:pointer;
+    display:flex; align-items:center; justify-content:center;
+  }
+  #themeToggle { left:20px; }
+  #helpBtn { right:20px; }
+
+  /* Help modal */
+  #helpModal {
+    display:none; position:fixed; top:0; left:0; width:100%; height:100%;
+    background:rgba(0,0,0,0.7); display:flex; align-items:center; justify-content:center;
+  }
+  #helpContent {
+    background:#fff; color:#000; padding:20px; border-radius:12px;
+    max-width:500px; width:90%;
+  }
+
+  /* Responsive */
+  @media (min-width:768px) {
+    .actions { gap:20px; }
+    .card { justify-content:space-between; }
+  }
 </style>
 </head>
 <body>
 
-<h1>Password Manager & Random Generator</h1>
+<h1>Password Manager</h1>
 
 <div class="navbar">
-  <button id="loginBtn">Login</button>
-  <button id="savePasswordBtn">Save Password</button>
-  <button id="importPasswordBtn">Import Password</button>
-  <button id="viewSavedBtn">Saved Passwords</button>
-  <button id="themeToggle">🌙/☀️</button>
+  <button id="loginBtn">👤</button>
+</div>
+
+<div class="actions">
+  <button id="savePasswordBtn">🔑 Save Password</button>
+  <button id="importPasswordBtn">📥 Import Password</button>
+  <button id="viewSavedBtn">📂 Saved Passwords</button>
 </div>
 
 <div class="container">
@@ -52,20 +120,28 @@
   <div class="strength" id="passwordStrength"></div>
 </div>
 
-<div class="container">
-  <h2>Random Number Generator</h2>
-  <label>Min:</label>
-  <input type="number" id="minNumber" value="1">
-  <label>Max:</label>
-  <input type="number" id="maxNumber" value="9999">
-  <button id="generateNumberBtn">Generate Random Number</button>
-  <div class="result" id="numberResult"></div>
-</div>
-
 <div class="container" id="savedContainer" style="display:none;">
   <h2>Saved Passwords</h2>
   <input type="text" id="searchSaved" placeholder="Search by name...">
   <div id="savedList"></div>
+  <p id="noPasswords" style="text-align:center; display:none;">Še nimate shranjenih gesel.</p>
+</div>
+
+<!-- Fixed buttons -->
+<button id="themeToggle" class="fixed-btn">🌙</button>
+<button id="helpBtn" class="fixed-btn">❓</button>
+
+<!-- Help modal -->
+<div id="helpModal">
+  <div id="helpContent">
+    <h2>Help & Info</h2>
+    <p>🔑 Ta aplikacija ti omogoča generiranje in shranjevanje gesel.</p>
+    <p>📦 Gesla lahko shraniš lokalno (samo na tej napravi) ali v svoj račun.</p>
+    <p>☁️ Če shraniš v račun, so tvoja gesla sinhronizirana in dostopna kjerkoli.</p>
+    <p>🔒 Varnost: Gesla so shranjena varno, priporoča se uporaba "Račun".</p>
+    <p>📱💻 Aplikacija se samodejno prilagodi tvoji napravi (mobilni / desktop).</p>
+    <button onclick="document.getElementById('helpModal').style.display='none'">Zapri</button>
+  </div>
 </div>
 
 <!-- Firebase SDK -->
@@ -92,7 +168,7 @@ const provider = new GoogleAuthProvider();
 let currentUser = null;
 onAuthStateChanged(auth, (user) => {
   currentUser = user;
-  document.getElementById("loginBtn").textContent = user ? "Logout" : "Login";
+  document.getElementById("loginBtn").textContent = user ? "🚪" : "👤";
 });
 
 // Login / Logout
@@ -108,6 +184,11 @@ document.getElementById("loginBtn").onclick = async () => {
 // Theme toggle
 document.getElementById("themeToggle").onclick = () => {
   document.body.classList.toggle("light");
+};
+
+// Help modal
+document.getElementById("helpBtn").onclick = () => {
+  document.getElementById("helpModal").style.display = "flex";
 };
 
 // Password Generator
@@ -139,28 +220,22 @@ function checkStrength(pw) {
   else { el.textContent="Strong"; el.className="strength strong"; }
 }
 
-// Random Number
-document.getElementById("generateNumberBtn").addEventListener("click", generateRandomNumber);
-function generateRandomNumber() {
-  const min = parseInt(document.getElementById("minNumber").value);
-  const max = parseInt(document.getElementById("maxNumber").value);
-  if (min>max) { alert("Min cannot be larger than max!"); return; }
-  const number = Math.floor(Math.random()*(max-min+1))+min;
-  const resultEl = document.getElementById("numberResult");
-  resultEl.textContent = number;
-  resultEl.classList.add("show");
-}
-
 // Save Password
 document.getElementById("savePasswordBtn").onclick = async () => {
   const password = document.getElementById("passwordResult").textContent;
   if (!password) { alert("Generate a password first!"); return; }
   const name = prompt("Enter a name for this password:");
   if (!name) return;
-  const choice = confirm("Save to Firebase (OK) or Local Storage (Cancel)?");
-  if (choice && currentUser) {
-    await addDoc(collection(db,"passwords"),{ uid: currentUser.uid, name, password });
-    alert("Saved to cloud!");
+
+  const choice = confirm("Shranim v Račun (OK) ali Lokalno (Cancel)?");
+  if (choice) {
+    if (!currentUser) {
+      await signInWithPopup(auth, provider);
+    }
+    if (currentUser) {
+      await addDoc(collection(db,"passwords"),{ uid: currentUser.uid, name, password });
+      alert("Saved to account!");
+    }
   } else {
     let localPasswords = JSON.parse(localStorage.getItem("passwords")||"[]");
     localPasswords.push({name,password});
@@ -170,20 +245,27 @@ document.getElementById("savePasswordBtn").onclick = async () => {
 };
 
 // Import Password
-document.getElementById("importPasswordBtn").onclick = () => {
+document.getElementById("importPasswordBtn").onclick = async () => {
   const password = prompt("Enter your password:");
   if (!password) return;
   const name = prompt("Enter a name for this password:");
   if (!name) return;
-  const choice = confirm("Save to Firebase (OK) or Local Storage (Cancel)?");
-  if (choice && currentUser) {
-    addDoc(collection(db,"passwords"),{ uid: currentUser.uid, name, password });
+
+  const choice = confirm("Shranim v Račun (OK) ali Lokalno (Cancel)?");
+  if (choice) {
+    if (!currentUser) {
+      await signInWithPopup(auth, provider);
+    }
+    if (currentUser) {
+      await addDoc(collection(db,"passwords"),{ uid: currentUser.uid, name, password });
+      alert("Password imported to account!");
+    }
   } else {
     let localPasswords = JSON.parse(localStorage.getItem("passwords")||"[]");
     localPasswords.push({name,password});
     localStorage.setItem("passwords",JSON.stringify(localPasswords));
+    alert("Password imported locally!");
   }
-  alert("Password imported!");
 };
 
 // View Saved Passwords
@@ -192,53 +274,78 @@ document.getElementById("viewSavedBtn").onclick = async () => {
   const listDiv=document.getElementById("savedList");
   listDiv.innerHTML="";
   let allPasswords=[];
+
   if (currentUser) {
     const q=query(collection(db,"passwords"),where("uid","==",currentUser.uid));
     const querySnapshot=await getDocs(q);
-    querySnapshot.forEach(d=>allPasswords.push({id:d.id,...d.data(),location:"cloud"}));
+    querySnapshot.forEach(d=>allPasswords.push({id:d.id,...d.data(),location:"Račun"}));
   }
-  let localPasswords=JSON.parse(localStorage.getItem("passwords")||"[]").map(p=>({...p,location:"local"}));
+  let localPasswords=JSON.parse(localStorage.getItem("passwords")||"[]").map(p=>({...p,location:"Local"}));
   allPasswords=allPasswords.concat(localPasswords);
-  // Render
+
   const search=document.getElementById("searchSaved").value.toLowerCase();
-  allPasswords.filter(p=>p.name.toLowerCase().includes(search)).forEach(p=>{
-    const row=document.createElement("div");
-    const span=document.createElement("span");
-    span.textContent=`${p.name} [${p.location}]`;
-    row.appendChild(span);
+  let filtered = allPasswords.filter(p=>p.name.toLowerCase().includes(search));
+
+  if (filtered.length===0) {
+    document.getElementById("noPasswords").style.display="block";
+  } else {
+    document.getElementById("noPasswords").style.display="none";
+  }
+
+  filtered.forEach(p=>{
+    const card=document.createElement("div");
+    card.className="card";
+    card.innerHTML=`<strong>${p.name}</strong> <small>[${p.location}]</small>`;
+    
+    const btns=document.createElement("div");
+
     const copyBtn=document.createElement("button");
     copyBtn.textContent="Copy";
     copyBtn.onclick=()=>{navigator.clipboard.writeText(p.password); alert("Copied!");};
-    row.appendChild(copyBtn);
+    btns.appendChild(copyBtn);
+
+    const shareBtn=document.createElement("button");
+    shareBtn.textContent="Share";
+    shareBtn.onclick=()=> {
+      if (navigator.share) {
+        navigator.share({ title:"Password Share", text:p.password });
+      } else {
+        alert("Sharing not supported on this device.");
+      }
+    };
+    btns.appendChild(shareBtn);
+
     const editBtn=document.createElement("button");
     editBtn.textContent="Edit";
-    editBtn.onclick=async ()=>{
-      const newName=prompt("Enter new name:",p.name);
+    editBtn.onclick=async ()=>{ const newName=prompt("New name:",p.name);
       if (!newName) return;
-      if (p.location==="cloud"){ await updateDoc(doc(db,"passwords",p.id),{name:newName}); }
+      if (p.location==="Račun"){ await updateDoc(doc(db,"passwords",p.id),{name:newName}); }
       else {
         let locals=JSON.parse(localStorage.getItem("passwords")||"[]");
         locals=locals.map(x=>x.name===p.name?{...x,name:newName}:x);
         localStorage.setItem("passwords",JSON.stringify(locals));
       }
-      alert("Updated!"); document.getElementById("viewSavedBtn").click();
+      document.getElementById("viewSavedBtn").click();
     };
-    row.appendChild(editBtn);
+    btns.appendChild(editBtn);
+
     const delBtn=document.createElement("button");
     delBtn.textContent="Delete";
-    delBtn.onclick=async ()=>{
-      if (!confirm("Delete?")) return;
-      if (p.location==="cloud"){ await deleteDoc(doc(db,"passwords",p.id)); }
+    delBtn.onclick=async ()=>{ if (!confirm("Delete?")) return;
+      if (p.location==="Račun"){ await deleteDoc(doc(db,"passwords",p.id)); }
       else {
         let locals=JSON.parse(localStorage.getItem("passwords")||"[]");
         locals=locals.filter(x=>x.name!==p.name);
         localStorage.setItem("passwords",JSON.stringify(locals));
       }
-      alert("Deleted!"); document.getElementById("viewSavedBtn").click();
+      document.getElementById("viewSavedBtn").click();
     };
-    row.appendChild(delBtn);
-    listDiv.appendChild(row);
+    btns.appendChild(delBtn);
+
+    card.appendChild(btns);
+    listDiv.appendChild(card);
   });
+
   savedContainer.style.display="block";
 };
 document.getElementById("searchSaved").addEventListener("input",()=>document.getElementById("viewSavedBtn").click());
