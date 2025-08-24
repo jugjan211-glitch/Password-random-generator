@@ -37,7 +37,7 @@
     <option value="lettersNumbers">Letters + Numbers</option>
     <option value="lettersNumbersSymbols">Letters + Numbers + Symbols</option>
   </select>
-  <button onclick="generatePassword()">Generate Password</button>
+  <button id="generatePasswordBtn">Generate Password</button>
   <div class="result" id="passwordResult"></div>
 </div>
 
@@ -47,7 +47,7 @@
   <input type="number" id="minNumber" value="1">
   <label>Max:</label>
   <input type="number" id="maxNumber" value="9999">
-  <button onclick="generateRandomNumber()">Generate Random Number</button>
+  <button id="generateNumberBtn">Generate Random Number</button>
   <div class="result" id="numberResult"></div>
 </div>
 
@@ -100,7 +100,7 @@ document.getElementById("loginBtn").onclick = async () => {
 
 // === FUNCTIONS ===
 // Password Generator
-window.generatePassword = function() {
+function generatePassword() {
   const length = parseInt(document.getElementById("passwordLength").value);
   const type = document.getElementById("passwordType").value;
   let chars = "";
@@ -110,16 +110,16 @@ window.generatePassword = function() {
   let password = "";
   for (let i=0;i<length;i++){ password += chars.charAt(Math.floor(Math.random()*chars.length)); }
   document.getElementById("passwordResult").textContent = password;
-};
+}
 
 // Random Number Generator
-window.generateRandomNumber = function() {
+function generateRandomNumber() {
   const min = parseInt(document.getElementById("minNumber").value);
   const max = parseInt(document.getElementById("maxNumber").value);
   if (min > max) { alert("Min cannot be larger than max!"); return; }
   const number = Math.floor(Math.random()*(max-min+1))+min;
   document.getElementById("numberResult").textContent = number;
-};
+}
 
 // Save Password
 document.getElementById("savePasswordBtn").onclick = async () => {
@@ -155,6 +155,11 @@ document.getElementById("viewSavedBtn").onclick = async () => {
   });
   savedContainer.style.display = "block";
 };
+
+// ✅ event listeners namesto inline onclick
+document.getElementById("generatePasswordBtn").addEventListener("click", generatePassword);
+document.getElementById("generateNumberBtn").addEventListener("click", generateRandomNumber);
+
 </script>
 
 </body>
