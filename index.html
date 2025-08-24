@@ -5,16 +5,24 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Password Manager & Random Generator</title>
 <style>
-  body { font-family: Arial; background:#121212; color:#fff; display:flex; flex-direction:column; align-items:center; padding:20px; }
+  body { font-family: Arial; background:#121212; color:#fff; display:flex; flex-direction:column; align-items:center; padding:20px; transition:0.3s; }
+  body.light { background:#f5f5f5; color:#000; }
   h1 { color:#00ff99; }
-  .navbar { width:100%; max-width:400px; display:flex; justify-content:space-between; margin-bottom:20px; }
-  .navbar button { width:auto; margin-left:5px; }
-  .container { background:#1e1e1e; padding:20px; border-radius:12px; margin-bottom:20px; width:100%; max-width:400px; }
+  .navbar { width:100%; max-width:500px; display:flex; justify-content:space-between; margin-bottom:20px; gap:5px; }
+  .navbar button { width:auto; }
+  .container { background:#1e1e1e; padding:20px; border-radius:12px; margin-bottom:20px; width:100%; max-width:500px; transition:0.3s; }
+  body.light .container { background:#fff; color:#000; }
   input, select { width:100%; padding:8px; margin:5px 0 10px 0; border-radius:6px; border:none; }
-  button { background:#00ff99; border:none; padding:10px; border-radius:6px; cursor:pointer; font-weight:bold; width:100%; }
+  button { background:#00ff99; border:none; padding:10px; border-radius:6px; cursor:pointer; font-weight:bold; }
   button:hover { background:#00cc77; }
-  .result { margin-top:10px; font-size:1.2em; text-align:center; word-break:break-all; }
-  #savedList button { width:100%; margin-bottom:5px; }
+  .result { margin-top:10px; font-size:1.2em; text-align:center; word-break:break-all; opacity:0; transition:opacity 0.8s; }
+  .result.show { opacity:1; }
+  #savedList div { display:flex; justify-content:space-between; align-items:center; margin-bottom:5px; }
+  #savedList button { margin-left:5px; }
+  .strength { font-weight:bold; margin-top:10px; text-align:center; }
+  .strength.weak { color:red; }
+  .strength.medium { color:orange; }
+  .strength.strong { color:lime; }
 </style>
 </head>
 <body>
@@ -24,7 +32,9 @@
 <div class="navbar">
   <button id="loginBtn">Login</button>
   <button id="savePasswordBtn">Save Password</button>
+  <button id="importPasswordBtn">Import Password</button>
   <button id="viewSavedBtn">Saved Passwords</button>
+  <button id="themeToggle">🌙/☀️</button>
 </div>
 
 <div class="container">
@@ -39,6 +49,7 @@
   </select>
   <button id="generatePasswordBtn">Generate Password</button>
   <div class="result" id="passwordResult"></div>
+  <div class="strength" id="passwordStrength"></div>
 </div>
 
 <div class="container">
@@ -53,16 +64,15 @@
 
 <div class="container" id="savedContainer" style="display:none;">
   <h2>Saved Passwords</h2>
+  <input type="text" id="searchSaved" placeholder="Search by name...">
   <div id="savedList"></div>
 </div>
 
 <!-- Firebase SDK -->
 <script type="module">
-// Firebase import
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
-import { getAnalytics } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-analytics.js";
 import { getAuth, onAuthStateChanged, signInWithPopup, GoogleAuthProvider, signOut } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
-import { getFirestore, collection, addDoc, query, where, getDocs } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
+import { getFirestore, collection, addDoc, query, where, getDocs, deleteDoc, doc, updateDoc } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
 
 // Firebase config
 const firebaseConfig = {
@@ -71,18 +81,14 @@ const firebaseConfig = {
   projectId: "pasword-manager-d4ab6",
   storageBucket: "pasword-manager-d4ab6.appspot.com",
   messagingSenderId: "1070489046614",
-  appId: "1:1070489046614:web:96f8fcd64b4a0a939e75f7",
-  measurementId: "G-2MJKRG9TMN"
+  appId: "1:1070489046614:web:96f8fcd64b4a0a939e75f7"
 };
 
-// Initialize Firebase
 const app = initializeApp(firebaseConfig);
-const analytics = getAnalytics(app);
 const auth = getAuth(app);
 const db = getFirestore(app);
 const provider = new GoogleAuthProvider();
 
-// Auth state
 let currentUser = null;
 onAuthStateChanged(auth, (user) => {
   currentUser = user;
@@ -92,76 +98,150 @@ onAuthStateChanged(auth, (user) => {
 // Login / Logout
 document.getElementById("loginBtn").onclick = async () => {
   if (!currentUser) {
-    try {
-      await signInWithPopup(auth, provider);
-    } catch (error) {
-      alert("Login failed: " + error.message);
-    }
+    try { await signInWithPopup(auth, provider); }
+    catch (error) { alert("Login failed: " + error.message); }
   } else {
     await signOut(auth);
   }
 };
 
-// Event listeners za gumb generatorjev
-document.getElementById("generatePasswordBtn").addEventListener("click", generatePassword);
-document.getElementById("generateNumberBtn").addEventListener("click", generateRandomNumber);
+// Theme toggle
+document.getElementById("themeToggle").onclick = () => {
+  document.body.classList.toggle("light");
+};
 
 // Password Generator
+document.getElementById("generatePasswordBtn").addEventListener("click", generatePassword);
 function generatePassword() {
   const length = parseInt(document.getElementById("passwordLength").value);
   const type = document.getElementById("passwordType").value;
-  let chars = "";
-  if (type === "letters") chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
-  else if (type === "lettersNumbers") chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-  else chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()_+-=[]{}|;:,.<>?";
+  let chars = type==="letters" ? "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+    : type==="lettersNumbers" ? "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+    : "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()_+-=[]{}|;:,.<>?";
   let password = "";
   for (let i=0;i<length;i++){ password += chars.charAt(Math.floor(Math.random()*chars.length)); }
-  document.getElementById("passwordResult").textContent = password;
+  const resultEl = document.getElementById("passwordResult");
+  resultEl.textContent = password;
+  resultEl.classList.add("show");
+  checkStrength(password);
 }
 
-// Random Number Generator
+// Strength check
+function checkStrength(pw) {
+  let score = 0;
+  if (pw.length >= 8) score++;
+  if (/[A-Z]/.test(pw)) score++;
+  if (/[0-9]/.test(pw)) score++;
+  if (/[^A-Za-z0-9]/.test(pw)) score++;
+  const el = document.getElementById("passwordStrength");
+  if (score<=1) { el.textContent="Weak"; el.className="strength weak"; }
+  else if (score==2) { el.textContent="Medium"; el.className="strength medium"; }
+  else { el.textContent="Strong"; el.className="strength strong"; }
+}
+
+// Random Number
+document.getElementById("generateNumberBtn").addEventListener("click", generateRandomNumber);
 function generateRandomNumber() {
   const min = parseInt(document.getElementById("minNumber").value);
   const max = parseInt(document.getElementById("maxNumber").value);
-  if (min > max) { alert("Min cannot be larger than max!"); return; }
+  if (min>max) { alert("Min cannot be larger than max!"); return; }
   const number = Math.floor(Math.random()*(max-min+1))+min;
-  document.getElementById("numberResult").textContent = number;
+  const resultEl = document.getElementById("numberResult");
+  resultEl.textContent = number;
+  resultEl.classList.add("show");
 }
 
 // Save Password
 document.getElementById("savePasswordBtn").onclick = async () => {
-  if (!currentUser) { alert("Please login first!"); return; }
   const password = document.getElementById("passwordResult").textContent;
   if (!password) { alert("Generate a password first!"); return; }
   const name = prompt("Enter a name for this password:");
   if (!name) return;
-  await addDoc(collection(db, "passwords"), {
-    uid: currentUser.uid,
-    name: name,
-    password: password
-  });
-  alert("Password saved!");
+  const choice = confirm("Save to Firebase (OK) or Local Storage (Cancel)?");
+  if (choice && currentUser) {
+    await addDoc(collection(db,"passwords"),{ uid: currentUser.uid, name, password });
+    alert("Saved to cloud!");
+  } else {
+    let localPasswords = JSON.parse(localStorage.getItem("passwords")||"[]");
+    localPasswords.push({name,password});
+    localStorage.setItem("passwords",JSON.stringify(localPasswords));
+    alert("Saved locally!");
+  }
+};
+
+// Import Password
+document.getElementById("importPasswordBtn").onclick = () => {
+  const password = prompt("Enter your password:");
+  if (!password) return;
+  const name = prompt("Enter a name for this password:");
+  if (!name) return;
+  const choice = confirm("Save to Firebase (OK) or Local Storage (Cancel)?");
+  if (choice && currentUser) {
+    addDoc(collection(db,"passwords"),{ uid: currentUser.uid, name, password });
+  } else {
+    let localPasswords = JSON.parse(localStorage.getItem("passwords")||"[]");
+    localPasswords.push({name,password});
+    localStorage.setItem("passwords",JSON.stringify(localPasswords));
+  }
+  alert("Password imported!");
 };
 
 // View Saved Passwords
 document.getElementById("viewSavedBtn").onclick = async () => {
-  if (!currentUser) { alert("Please login first!"); return; }
-  const savedContainer = document.getElementById("savedContainer");
-  const listDiv = document.getElementById("savedList");
-  listDiv.innerHTML = "";
-  const q = query(collection(db,"passwords"), where("uid","==",currentUser.uid));
-  const querySnapshot = await getDocs(q);
-  querySnapshot.forEach(doc => {
-    const btn = document.createElement("button");
-    btn.textContent = doc.data().name;
-    btn.onclick = () => {
-      navigator.clipboard.writeText(doc.data().password);
-      alert("Password copied to clipboard: "+doc.data().password);
+  const savedContainer=document.getElementById("savedContainer");
+  const listDiv=document.getElementById("savedList");
+  listDiv.innerHTML="";
+  let allPasswords=[];
+  if (currentUser) {
+    const q=query(collection(db,"passwords"),where("uid","==",currentUser.uid));
+    const querySnapshot=await getDocs(q);
+    querySnapshot.forEach(d=>allPasswords.push({id:d.id,...d.data(),location:"cloud"}));
+  }
+  let localPasswords=JSON.parse(localStorage.getItem("passwords")||"[]").map(p=>({...p,location:"local"}));
+  allPasswords=allPasswords.concat(localPasswords);
+  // Render
+  const search=document.getElementById("searchSaved").value.toLowerCase();
+  allPasswords.filter(p=>p.name.toLowerCase().includes(search)).forEach(p=>{
+    const row=document.createElement("div");
+    const span=document.createElement("span");
+    span.textContent=`${p.name} [${p.location}]`;
+    row.appendChild(span);
+    const copyBtn=document.createElement("button");
+    copyBtn.textContent="Copy";
+    copyBtn.onclick=()=>{navigator.clipboard.writeText(p.password); alert("Copied!");};
+    row.appendChild(copyBtn);
+    const editBtn=document.createElement("button");
+    editBtn.textContent="Edit";
+    editBtn.onclick=async ()=>{
+      const newName=prompt("Enter new name:",p.name);
+      if (!newName) return;
+      if (p.location==="cloud"){ await updateDoc(doc(db,"passwords",p.id),{name:newName}); }
+      else {
+        let locals=JSON.parse(localStorage.getItem("passwords")||"[]");
+        locals=locals.map(x=>x.name===p.name?{...x,name:newName}:x);
+        localStorage.setItem("passwords",JSON.stringify(locals));
+      }
+      alert("Updated!"); document.getElementById("viewSavedBtn").click();
     };
-    listDiv.appendChild(btn);
+    row.appendChild(editBtn);
+    const delBtn=document.createElement("button");
+    delBtn.textContent="Delete";
+    delBtn.onclick=async ()=>{
+      if (!confirm("Delete?")) return;
+      if (p.location==="cloud"){ await deleteDoc(doc(db,"passwords",p.id)); }
+      else {
+        let locals=JSON.parse(localStorage.getItem("passwords")||"[]");
+        locals=locals.filter(x=>x.name!==p.name);
+        localStorage.setItem("passwords",JSON.stringify(locals));
+      }
+      alert("Deleted!"); document.getElementById("viewSavedBtn").click();
+    };
+    row.appendChild(delBtn);
+    listDiv.appendChild(row);
   });
-  savedContainer.style.display = "block";
+  savedContainer.style.display="block";
 };
+document.getElementById("searchSaved").addEventListener("input",()=>document.getElementById("viewSavedBtn").click());
 </script>
 
 </body>
