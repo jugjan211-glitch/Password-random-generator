@@ -15,15 +15,6 @@
   button:hover { background:#00cc77; }
   .result { margin-top:10px; font-size:1.2em; text-align:center; word-break:break-all; }
   #savedList button { width:100%; margin-bottom:5px; }
-  /* Modal stil */
-  #loginModal {
-    display:none; position:fixed; z-index:1000; left:0; top:0; width:100%; height:100%; background-color:rgba(0,0,0,0.5);
-  }
-  .modal-content {
-    background:#1e1e1e; color:#fff; margin:10% auto; padding:20px; width:300px; border-radius:10px; text-align:center;
-  }
-  .close { float:right; cursor:pointer; font-weight:bold; font-size:20px; }
-  .modal-content input { width:90%; margin:5px 0; padding:8px; border-radius:6px; border:none; }
 </style>
 </head>
 <body>
@@ -65,17 +56,6 @@
   <div id="savedList"></div>
 </div>
 
-<!-- LOGIN MODAL -->
-<div id="loginModal">
-  <div class="modal-content">
-    <span class="close" id="closeModal">&times;</span>
-    <h2>Login</h2>
-    <input type="text" id="username" placeholder="Username">
-    <input type="password" id="password" placeholder="Password">
-    <button id="loginSubmitBtn">Login</button>
-  </div>
-</div>
-
 <!-- Firebase SDK -->
 <script type="module">
 // Firebase import
@@ -112,7 +92,11 @@ onAuthStateChanged(auth, (user) => {
 // Login / Logout
 document.getElementById("loginBtn").onclick = async () => {
   if (!currentUser) {
-    await signInWithPopup(auth, provider);
+    try {
+      await signInWithPopup(auth, provider);
+    } catch (error) {
+      alert("Login failed: " + error.message);
+    }
   } else {
     await signOut(auth);
   }
@@ -177,21 +161,6 @@ document.getElementById("viewSavedBtn").onclick = async () => {
     listDiv.appendChild(btn);
   });
   savedContainer.style.display = "block";
-};
-
-// --- LOGIN MODAL ---
-const modal = document.getElementById("loginModal");
-const closeBtn = document.getElementById("closeModal");
-const loginSubmitBtn = document.getElementById("loginSubmitBtn");
-
-closeBtn.onclick = () => { modal.style.display = "none"; };
-window.onclick = (event) => { if(event.target==modal){ modal.style.display="none"; } };
-
-loginSubmitBtn.onclick = () => {
-  const user = document.getElementById("username").value;
-  const pass = document.getElementById("password").value;
-  if(user && pass){ alert("Logged in as "+user); modal.style.display="none"; }
-  else{ alert("Please fill both fields!"); }
 };
 </script>
 
