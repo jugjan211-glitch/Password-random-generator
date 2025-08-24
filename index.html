@@ -58,7 +58,7 @@
 
 <!-- Firebase SDK -->
 <script type="module">
-// Import the functions you need from the SDKs
+// Import Firebase SDKs
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
 import { getAnalytics } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-analytics.js";
 import { getAuth, onAuthStateChanged, signInWithPopup, GoogleAuthProvider, signOut } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
@@ -98,8 +98,9 @@ document.getElementById("loginBtn").onclick = async () => {
   }
 };
 
-// Generate Password
-function generatePassword() {
+// === FUNCTIONS ===
+// Password Generator
+window.generatePassword = function() {
   const length = parseInt(document.getElementById("passwordLength").value);
   const type = document.getElementById("passwordType").value;
   let chars = "";
@@ -109,16 +110,16 @@ function generatePassword() {
   let password = "";
   for (let i=0;i<length;i++){ password += chars.charAt(Math.floor(Math.random()*chars.length)); }
   document.getElementById("passwordResult").textContent = password;
-}
+};
 
-// Generate Random Number
-function generateRandomNumber() {
+// Random Number Generator
+window.generateRandomNumber = function() {
   const min = parseInt(document.getElementById("minNumber").value);
   const max = parseInt(document.getElementById("maxNumber").value);
   if (min > max) { alert("Min cannot be larger than max!"); return; }
   const number = Math.floor(Math.random()*(max-min+1))+min;
   document.getElementById("numberResult").textContent = number;
-}
+};
 
 // Save Password
 document.getElementById("savePasswordBtn").onclick = async () => {
