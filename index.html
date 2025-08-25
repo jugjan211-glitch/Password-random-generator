@@ -1,355 +1,191 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Password Manager</title>
-<style>
-  body {
-    font-family: Arial;
-    background:#121212; color:#fff;
-    margin:0; padding:0;
-    transition:0.3s;
-  }
-  body.light { background:#f5f5f5; color:#000; }
-  h1 { color:#00ff99; text-align:center; padding:20px; }
-
-  /* Navbar */
-  .navbar { 
-    display:flex; justify-content:flex-end;
-    padding:10px 20px; position:relative;
-  }
-  #loginBtn {
-    background:none; border:none; cursor:pointer; font-size:1.5em;
-  }
-
-  /* Main buttons */
-  .actions {
-    display:flex; justify-content:center; gap:10px; flex-wrap:wrap;
-    margin-bottom:20px;
-  }
-  .actions button {
-    background:#00ff99; border:none; padding:10px 20px;
-    border-radius:6px; cursor:pointer; font-weight:bold;
-  }
-  .actions button:hover { background:#00cc77; }
-
-  /* Containers */
-  .container {
-    background:#1e1e1e; padding:20px; border-radius:12px;
-    margin:10px auto; width:90%; max-width:600px; transition:0.3s;
-  }
-  body.light .container { background:#fff; color:#000; }
-
-  input, select {
-    width:100%; padding:8px; margin:5px 0 10px 0;
-    border-radius:6px; border:none;
-  }
-  .result {
-    margin-top:10px; font-size:1.2em; text-align:center;
-    word-break:break-all; opacity:0; transition:opacity 0.8s;
-  }
-  .result.show { opacity:1; }
-
-  /* Saved passwords */
-  .card {
-    background:#2a2a2a; padding:10px; border-radius:8px;
-    margin-bottom:10px; display:flex; justify-content:space-between; align-items:center;
-    flex-wrap:wrap; gap:5px;
-  }
-  body.light .card { background:#f0f0f0; }
-
-  .strength { font-weight:bold; margin-top:10px; text-align:center; }
-  .strength.weak { color:red; }
-  .strength.medium { color:orange; }
-  .strength.strong { color:lime; }
-
-  /* Fixed buttons bottom */
-  .fixed-btn {
-    position:fixed; bottom:20px; font-size:1.5em;
-    background:#00ff99; border:none; border-radius:50%;
-    width:50px; height:50px; cursor:pointer;
-    display:flex; align-items:center; justify-content:center;
-  }
-  #themeToggle { left:20px; }
-  #helpBtn { right:20px; }
-
-  /* Help modal */
-  #helpModal {
-    display:none; position:fixed; top:0; left:0; width:100%; height:100%;
-    background:rgba(0,0,0,0.7); display:flex; align-items:center; justify-content:center;
-  }
-  #helpContent {
-    background:#fff; color:#000; padding:20px; border-radius:12px;
-    max-width:500px; width:90%;
-  }
-
-  /* Responsive */
-  @media (min-width:768px) {
-    .actions { gap:20px; }
-    .card { justify-content:space-between; }
-  }
-</style>
+  <meta charset="UTF-8">
+  <title>Password Manager</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f0f2f5;
+      margin: 0;
+      padding: 20px;
+    }
+    h1 {
+      text-align: center;
+      color: #333;
+    }
+    .container {
+      max-width: 700px;
+      margin: auto;
+      background: #fff;
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    button {
+      padding: 8px 14px;
+      border: none;
+      border-radius: 8px;
+      margin: 4px;
+      cursor: pointer;
+      background: #007bff;
+      color: #fff;
+      transition: 0.2s;
+    }
+    button:hover { background: #0056b3; }
+    form {
+      display: none;
+      margin: 15px 0;
+      padding: 15px;
+      border: 1px solid #ccc;
+      border-radius: 10px;
+      background: #f9f9f9;
+    }
+    form input, form select {
+      display: block;
+      width: 95%;
+      padding: 8px;
+      margin: 8px 0;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+    }
+    .password-list {
+      margin-top: 20px;
+    }
+    .password-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px;
+      background: #fafafa;
+      margin-bottom: 8px;
+      border-radius: 8px;
+      border: 1px solid #ddd;
+    }
+    .item-info {
+      flex: 1;
+    }
+    .item-actions button {
+      background: #6c757d;
+    }
+    .item-actions button:hover {
+      background: #5a6268;
+    }
+  </style>
 </head>
 <body>
+  <div class="container">
+    <h1>Password Manager</h1>
+    <div>
+      <button onclick="toggleForm('saveForm')">+ Save Password</button>
+      <button onclick="toggleForm('importForm')">⇪ Import Password</button>
+    </div>
 
-<h1>Password Manager</h1>
+    <!-- Save Password Form -->
+    <form id="saveForm" onsubmit="savePassword(event)">
+      <h3>Save New Password</h3>
+      <input type="text" id="saveWebsite" placeholder="Website" required>
+      <input type="text" id="saveUsername" placeholder="Username (optional)">
+      <input type="text" id="savePassword" placeholder="Password" required>
+      <select id="saveLocation">
+        <option value="local">Local</option>
+        <option value="account">Account</option>
+      </select>
+      <button type="submit">Save</button>
+    </form>
 
-<div class="navbar">
-  <button id="loginBtn">👤</button>
-</div>
+    <!-- Import Password Form -->
+    <form id="importForm" onsubmit="importPassword(event)">
+      <h3>Import Password</h3>
+      <input type="text" id="importWebsite" placeholder="Website" required>
+      <input type="text" id="importUsername" placeholder="Username (optional)">
+      <input type="text" id="importPasswordVal" placeholder="Password" required>
+      <select id="importLocation">
+        <option value="local">Local</option>
+        <option value="account">Account</option>
+      </select>
+      <button type="submit">Import</button>
+    </form>
 
-<div class="actions">
-  <button id="savePasswordBtn">🔑 Save Password</button>
-  <button id="importPasswordBtn">📥 Import Password</button>
-  <button id="viewSavedBtn">📂 Saved Passwords</button>
-</div>
-
-<div class="container">
-  <h2>Password Generator</h2>
-  <label>Password Length:</label>
-  <input type="number" id="passwordLength" value="12" min="4" max="64">
-  <label>Password Type:</label>
-  <select id="passwordType">
-    <option value="letters">Letters Only</option>
-    <option value="lettersNumbers">Letters + Numbers</option>
-    <option value="lettersNumbersSymbols">Letters + Numbers + Symbols</option>
-  </select>
-  <button id="generatePasswordBtn">Generate Password</button>
-  <div class="result" id="passwordResult"></div>
-  <div class="strength" id="passwordStrength"></div>
-</div>
-
-<div class="container" id="savedContainer" style="display:none;">
-  <h2>Saved Passwords</h2>
-  <input type="text" id="searchSaved" placeholder="Search by name...">
-  <div id="savedList"></div>
-  <p id="noPasswords" style="text-align:center; display:none;">Še nimate shranjenih gesel.</p>
-</div>
-
-<!-- Fixed buttons -->
-<button id="themeToggle" class="fixed-btn">🌙</button>
-<button id="helpBtn" class="fixed-btn">❓</button>
-
-<!-- Help modal -->
-<div id="helpModal">
-  <div id="helpContent">
-    <h2>Help & Info</h2>
-    <p>🔑 Ta aplikacija ti omogoča generiranje in shranjevanje gesel.</p>
-    <p>📦 Gesla lahko shraniš lokalno (samo na tej napravi) ali v svoj račun.</p>
-    <p>☁️ Če shraniš v račun, so tvoja gesla sinhronizirana in dostopna kjerkoli.</p>
-    <p>🔒 Varnost: Gesla so shranjena varno, priporoča se uporaba "Račun".</p>
-    <p>📱💻 Aplikacija se samodejno prilagodi tvoji napravi (mobilni / desktop).</p>
-    <button onclick="document.getElementById('helpModal').style.display='none'">Zapri</button>
+    <div class="password-list" id="passwordList"></div>
   </div>
-</div>
 
-<!-- Firebase SDK -->
-<script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
-import { getAuth, onAuthStateChanged, signInWithPopup, GoogleAuthProvider, signOut } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
-import { getFirestore, collection, addDoc, query, where, getDocs, deleteDoc, doc, updateDoc } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
+  <script>
+    const passwords = JSON.parse(localStorage.getItem('passwords')) || [];
 
-// Firebase config
-const firebaseConfig = {
-  apiKey: "AIzaSyD6wyq8fLh4QiW2PP0e22I9pyACRNvSPkc",
-  authDomain: "pasword-manager-d4ab6.firebaseapp.com",
-  projectId: "pasword-manager-d4ab6",
-  storageBucket: "pasword-manager-d4ab6.appspot.com",
-  messagingSenderId: "1070489046614",
-  appId: "1:1070489046614:web:96f8fcd64b4a0a939e75f7"
-};
-
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const db = getFirestore(app);
-const provider = new GoogleAuthProvider();
-
-let currentUser = null;
-onAuthStateChanged(auth, (user) => {
-  currentUser = user;
-  document.getElementById("loginBtn").textContent = user ? "🚪" : "👤";
-});
-
-// Login / Logout
-document.getElementById("loginBtn").onclick = async () => {
-  if (!currentUser) {
-    try { await signInWithPopup(auth, provider); }
-    catch (error) { alert("Login failed: " + error.message); }
-  } else {
-    await signOut(auth);
-  }
-};
-
-// Theme toggle
-document.getElementById("themeToggle").onclick = () => {
-  document.body.classList.toggle("light");
-};
-
-// Help modal
-document.getElementById("helpBtn").onclick = () => {
-  document.getElementById("helpModal").style.display = "flex";
-};
-
-// Password Generator
-document.getElementById("generatePasswordBtn").addEventListener("click", generatePassword);
-function generatePassword() {
-  const length = parseInt(document.getElementById("passwordLength").value);
-  const type = document.getElementById("passwordType").value;
-  let chars = type==="letters" ? "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
-    : type==="lettersNumbers" ? "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
-    : "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()_+-=[]{}|;:,.<>?";
-  let password = "";
-  for (let i=0;i<length;i++){ password += chars.charAt(Math.floor(Math.random()*chars.length)); }
-  const resultEl = document.getElementById("passwordResult");
-  resultEl.textContent = password;
-  resultEl.classList.add("show");
-  checkStrength(password);
-}
-
-// Strength check
-function checkStrength(pw) {
-  let score = 0;
-  if (pw.length >= 8) score++;
-  if (/[A-Z]/.test(pw)) score++;
-  if (/[0-9]/.test(pw)) score++;
-  if (/[^A-Za-z0-9]/.test(pw)) score++;
-  const el = document.getElementById("passwordStrength");
-  if (score<=1) { el.textContent="Weak"; el.className="strength weak"; }
-  else if (score==2) { el.textContent="Medium"; el.className="strength medium"; }
-  else { el.textContent="Strong"; el.className="strength strong"; }
-}
-
-// Save Password
-document.getElementById("savePasswordBtn").onclick = async () => {
-  const password = document.getElementById("passwordResult").textContent;
-  if (!password) { alert("Generate a password first!"); return; }
-  const name = prompt("Enter a name for this password:");
-  if (!name) return;
-
-  const choice = confirm("Shranim v Račun (OK) ali Lokalno (Cancel)?");
-  if (choice) {
-    if (!currentUser) {
-      await signInWithPopup(auth, provider);
+    function toggleForm(id) {
+      const form = document.getElementById(id);
+      form.style.display = form.style.display === 'block' ? 'none' : 'block';
     }
-    if (currentUser) {
-      await addDoc(collection(db,"passwords"),{ uid: currentUser.uid, name, password });
-      alert("Saved to account!");
+
+    function savePassword(e) {
+      e.preventDefault();
+      const website = document.getElementById('saveWebsite').value;
+      const username = document.getElementById('saveUsername').value;
+      const password = document.getElementById('savePassword').value;
+      const location = document.getElementById('saveLocation').value;
+      
+      passwords.push({ website, username, password, location });
+      localStorage.setItem('passwords', JSON.stringify(passwords));
+      e.target.reset();
+      renderPasswords();
     }
-  } else {
-    let localPasswords = JSON.parse(localStorage.getItem("passwords")||"[]");
-    localPasswords.push({name,password});
-    localStorage.setItem("passwords",JSON.stringify(localPasswords));
-    alert("Saved locally!");
-  }
-};
 
-// Import Password
-document.getElementById("importPasswordBtn").onclick = async () => {
-  const password = prompt("Enter your password:");
-  if (!password) return;
-  const name = prompt("Enter a name for this password:");
-  if (!name) return;
+    function importPassword(e) {
+      e.preventDefault();
+      const website = document.getElementById('importWebsite').value;
+      const username = document.getElementById('importUsername').value;
+      const password = document.getElementById('importPasswordVal').value;
+      const location = document.getElementById('importLocation').value;
 
-  const choice = confirm("Shranim v Račun (OK) ali Lokalno (Cancel)?");
-  if (choice) {
-    if (!currentUser) {
-      await signInWithPopup(auth, provider);
+      passwords.push({ website, username, password, location });
+      localStorage.setItem('passwords', JSON.stringify(passwords));
+      e.target.reset();
+      renderPasswords();
     }
-    if (currentUser) {
-      await addDoc(collection(db,"passwords"),{ uid: currentUser.uid, name, password });
-      alert("Password imported to account!");
+
+    function renderPasswords() {
+      const list = document.getElementById('passwordList');
+      list.innerHTML = '';
+      passwords.forEach((entry, index) => {
+        const div = document.createElement('div');
+        div.className = 'password-item';
+        div.innerHTML = `
+          <div class="item-info">
+            <b>${entry.website}</b> ${entry.username ? '('+entry.username+')' : ''}<br>
+            <small>[${entry.location}]</small>
+          </div>
+          <div class="item-actions">
+            <button onclick="copyPassword('${entry.password}')">📋</button>
+            <button onclick="editPassword(${index})">✏️</button>
+            <button onclick="deletePassword(${index})">🗑️</button>
+          </div>
+        `;
+        list.appendChild(div);
+      });
     }
-  } else {
-    let localPasswords = JSON.parse(localStorage.getItem("passwords")||"[]");
-    localPasswords.push({name,password});
-    localStorage.setItem("passwords",JSON.stringify(localPasswords));
-    alert("Password imported locally!");
-  }
-};
 
-// View Saved Passwords
-document.getElementById("viewSavedBtn").onclick = async () => {
-  const savedContainer=document.getElementById("savedContainer");
-  const listDiv=document.getElementById("savedList");
-  listDiv.innerHTML="";
-  let allPasswords=[];
+    function copyPassword(pw) {
+      navigator.clipboard.writeText(pw);
+    }
 
-  if (currentUser) {
-    const q=query(collection(db,"passwords"),where("uid","==",currentUser.uid));
-    const querySnapshot=await getDocs(q);
-    querySnapshot.forEach(d=>allPasswords.push({id:d.id,...d.data(),location:"Račun"}));
-  }
-  let localPasswords=JSON.parse(localStorage.getItem("passwords")||"[]").map(p=>({...p,location:"Local"}));
-  allPasswords=allPasswords.concat(localPasswords);
+    function deletePassword(i) {
+      passwords.splice(i, 1);
+      localStorage.setItem('passwords', JSON.stringify(passwords));
+      renderPasswords();
+    }
 
-  const search=document.getElementById("searchSaved").value.toLowerCase();
-  let filtered = allPasswords.filter(p=>p.name.toLowerCase().includes(search));
+    function editPassword(i) {
+      const entry = passwords[i];
+      document.getElementById('saveWebsite').value = entry.website;
+      document.getElementById('saveUsername').value = entry.username;
+      document.getElementById('savePassword').value = entry.password;
+      document.getElementById('saveLocation').value = entry.location;
+      toggleForm('saveForm');
+      deletePassword(i);
+    }
 
-  if (filtered.length===0) {
-    document.getElementById("noPasswords").style.display="block";
-  } else {
-    document.getElementById("noPasswords").style.display="none";
-  }
-
-  filtered.forEach(p=>{
-    const card=document.createElement("div");
-    card.className="card";
-    card.innerHTML=`<strong>${p.name}</strong> <small>[${p.location}]</small>`;
-    
-    const btns=document.createElement("div");
-
-    const copyBtn=document.createElement("button");
-    copyBtn.textContent="Copy";
-    copyBtn.onclick=()=>{navigator.clipboard.writeText(p.password); alert("Copied!");};
-    btns.appendChild(copyBtn);
-
-    const shareBtn=document.createElement("button");
-    shareBtn.textContent="Share";
-    shareBtn.onclick=()=> {
-      if (navigator.share) {
-        navigator.share({ title:"Password Share", text:p.password });
-      } else {
-        alert("Sharing not supported on this device.");
-      }
-    };
-    btns.appendChild(shareBtn);
-
-    const editBtn=document.createElement("button");
-    editBtn.textContent="Edit";
-    editBtn.onclick=async ()=>{ const newName=prompt("New name:",p.name);
-      if (!newName) return;
-      if (p.location==="Račun"){ await updateDoc(doc(db,"passwords",p.id),{name:newName}); }
-      else {
-        let locals=JSON.parse(localStorage.getItem("passwords")||"[]");
-        locals=locals.map(x=>x.name===p.name?{...x,name:newName}:x);
-        localStorage.setItem("passwords",JSON.stringify(locals));
-      }
-      document.getElementById("viewSavedBtn").click();
-    };
-    btns.appendChild(editBtn);
-
-    const delBtn=document.createElement("button");
-    delBtn.textContent="Delete";
-    delBtn.onclick=async ()=>{ if (!confirm("Delete?")) return;
-      if (p.location==="Račun"){ await deleteDoc(doc(db,"passwords",p.id)); }
-      else {
-        let locals=JSON.parse(localStorage.getItem("passwords")||"[]");
-        locals=locals.filter(x=>x.name!==p.name);
-        localStorage.setItem("passwords",JSON.stringify(locals));
-      }
-      document.getElementById("viewSavedBtn").click();
-    };
-    btns.appendChild(delBtn);
-
-    card.appendChild(btns);
-    listDiv.appendChild(card);
-  });
-
-  savedContainer.style.display="block";
-};
-document.getElementById("searchSaved").addEventListener("input",()=>document.getElementById("viewSavedBtn").click());
-</script>
-
+    renderPasswords();
+  </script>
 </body>
 </html>
