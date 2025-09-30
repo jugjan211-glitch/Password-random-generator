@@ -5,188 +5,122 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Password Manager</title>
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      margin: 0;
-      padding: 20px;
-      background: #f5f5f5;
-    }
-    h1 {
-      text-align: center;
-    }
-    .container {
-      max-width: 800px;
-      margin: auto;
-      background: #fff;
-      padding: 20px;
-      border-radius: 10px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-    }
-    .field {
-      margin-bottom: 15px;
-    }
-    .field label {
-      display: block;
-      font-weight: bold;
-      margin-bottom: 5px;
-    }
-    .field input, .field select {
-      width: 100%;
-      padding: 8px;
-      border-radius: 5px;
-      border: 1px solid #ccc;
-    }
-    button {
-      padding: 8px 12px;
-      border: none;
-      border-radius: 6px;
-      cursor: pointer;
-      margin: 2px;
-    }
-    button.chip {
-      background: #eee;
-    }
-    button.chip:hover {
-      background: #ddd;
-    }
-    .item {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 12px;
-      border-bottom: 1px solid #ccc;
-    }
-    .stack {
-      display: flex;
-      flex-direction: column;
-    }
-    .meta {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-    .name {
-      font-weight: bold;
-    }
-    .badge {
-      font-size: 12px;
-      padding: 2px 6px;
-      border-radius: 4px;
-      background: #eee;
-    }
-    .muted {
-      font-size: 12px;
-      color: #555;
-    }
-    .secret {
-      font-family: monospace;
-      margin-top: 4px;
-    }
-    .btns {
-      display: flex;
-      gap: 4px;
-    }
-    #saved {
-      margin-top: 20px;
-    }
-    #search {
-      width: 100%;
-      padding: 8px;
-      margin-bottom: 10px;
-    }
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    h1 { text-align: center; }
+
+    .container { max-width: 800px; margin: auto; }
+    .stack { display: flex; flex-direction: column; gap: 6px; }
+    .row { display: flex; gap: 12px; align-items: center; margin-bottom: 12px; }
+    .meta { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+    .badge { background: #eee; padding: 2px 6px; border-radius: 4px; font-size: 12px; }
+    .btns { display: flex; gap: 8px; }
+    .chip { border: none; background: #ddd; padding: 4px 8px; border-radius: 6px; cursor: pointer; }
+    .chip:hover { background: #ccc; }
+    .muted { color: #666; font-size: 12px; }
+    .secret { font-family: monospace; }
+    .item { display: flex; justify-content: space-between; padding: 10px; border-bottom: 1px solid #eee; }
+
+    input, select { padding: 4px; }
   </style>
 </head>
 <body>
   <h1>Password Manager</h1>
+
   <div class="container">
-    <div class="field">
-      <label for="passwordLength">Password length</label>
-      <input type="number" id="passwordLength" value="12" min="4" max="64" />
-    </div>
-    <div class="field">
-      <label>Include</label>
+    <div class="row">
+      <button id="genBtn">Generate</button>
       <label><input type="checkbox" id="letters" checked /> Letters</label>
       <label><input type="checkbox" id="numbers" /> Numbers</label>
       <label><input type="checkbox" id="symbols" /> Symbols</label>
+      <input type="number" id="length" value="12" min="4" max="64" />
     </div>
-    <button id="generate">Generate Password</button>
-    <div id="result"></div>
-    <div class="field">
-      <label for="passName">Name</label>
-      <input type="text" id="passName" placeholder="e.g. Facebook" />
+
+    <div class="row">
+      <input type="text" id="generated" readonly />
+      <button id="copyBtn">Copy</button>
     </div>
-    <div class="field">
-      <label for="username">Username (optional)</label>
-      <input type="text" id="username" placeholder="e.g. john.doe" />
+
+    <div class="row">
+      <input type="text" id="siteName" placeholder="Name" />
+      <input type="text" id="username" placeholder="Username (optional)" />
+      <button id="saveBtn">Save Password</button>
     </div>
-    <button id="save">Save Password</button>
-    <button id="import">Import Password</button>
-    <input type="text" id="search" placeholder="Search..." />
-    <div id="saved"></div>
+
+    <div class="row">
+      <input type="text" id="importName" placeholder="Import name" />
+      <input type="text" id="importUser" placeholder="Import username (optional)" />
+      <input type="text" id="importPass" placeholder="Import password" />
+      <button id="importBtn">Import</button>
+    </div>
+
+    <div class="row">
+      <input type="text" id="search" placeholder="Search..." />
+    </div>
+
+    <div id="saved" class="stack"></div>
   </div>
 
   <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-    import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-app.js";
+    import {
+      getFirestore, collection, addDoc, getDocs, deleteDoc, doc
+    } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore.js";
 
     const firebaseConfig = {
-      apiKey: "YOUR_API_KEY",
-      authDomain: "YOUR_DOMAIN",
-      projectId: "YOUR_PROJECT_ID",
-      storageBucket: "YOUR_BUCKET",
-      messagingSenderId: "YOUR_SENDER",
-      appId: "YOUR_APPID"
+      apiKey: "YOUR_KEY",
+      authDomain: "YOUR_PROJECT.firebaseapp.com",
+      projectId: "YOUR_PROJECT",
+      storageBucket: "YOUR_PROJECT.appspot.com",
+      messagingSenderId: "123456789",
+      appId: "YOUR_APP_ID"
     };
 
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
-    const genBtn = document.getElementById("generate");
-    const saveBtn = document.getElementById("save");
-    const importBtn = document.getElementById("import");
-    const result = document.getElementById("result");
+    const genBtn = document.getElementById("genBtn");
+    const copyBtn = document.getElementById("copyBtn");
+    const saveBtn = document.getElementById("saveBtn");
+    const importBtn = document.getElementById("importBtn");
+    const generated = document.getElementById("generated");
     const savedContainer = document.getElementById("saved");
-    const passName = document.getElementById("passName");
-    const usernameField = document.getElementById("username");
     const search = document.getElementById("search");
 
     function generatePassword(length, letters, numbers, symbols) {
+      const l = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
+      const n = "0123456789";
+      const s = "!@#$%^&*()_-+=[]{}";
       let chars = "";
-      if (letters) chars += "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
-      if (numbers) chars += "0123456789";
-      if (symbols) chars += "!@#$%^&*()_+[]{}<>?,.";
-      let pass = "";
+      if (letters) chars += l;
+      if (numbers) chars += n;
+      if (symbols) chars += s;
+      if (!chars) chars = l;
+      let out = "";
       for (let i = 0; i < length; i++) {
-        pass += chars.charAt(Math.floor(Math.random() * chars.length));
+        out += chars[Math.floor(Math.random() * chars.length)];
       }
-      return pass;
+      return out;
     }
 
-    function mask(str) {
-      return "•".repeat(str.length);
-    }
-
-    function checkStrength(password, el) {
-      let score = 0;
-      if (password.length >= 8) score++;
-      if (/[A-Z]/.test(password)) score++;
-      if (/[0-9]/.test(password)) score++;
-      if (/[^A-Za-z0-9]/.test(password)) score++;
-      el.textContent = ["Weak", "Fair", "Good", "Strong"][score] || "Very Weak";
+    function mask(pw) {
+      return "*".repeat(pw.length);
     }
 
     async function refreshList() {
       savedContainer.innerHTML = "";
       let arr = JSON.parse(localStorage.getItem("passwords") || "[]");
       const snap = await getDocs(collection(db, "passwords"));
-      const docs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-      const combined = [...arr, ...docs];
+      const firebasePasswords = snap.docs.map(docSnap => ({
+        id: docSnap.id,
+        ...docSnap.data(),
+        location: "Account"
+      }));
+      const localPasswords = arr.map(p => ({ ...p, location: "Local" }));
+      let combined = [...firebasePasswords, ...localPasswords];
+      const q = search.value.toLowerCase();
+      if (q) combined = combined.filter(p => p.name.toLowerCase().includes(q));
 
-      const filtered = combined.filter(item =>
-        item.name.toLowerCase().includes(search.value.toLowerCase())
-      );
-
-      filtered.forEach(item => {
+      combined.forEach(item => {
         const row = document.createElement("div");
         row.className = "item";
 
@@ -204,15 +138,8 @@
         badge.className = "badge";
         badge.textContent = item.location;
 
-        const strengthSpan = document.createElement("span");
-        strengthSpan.className = "badge";
-        const tmp = document.createElement("div");
-        checkStrength(item.password || "", tmp);
-        strengthSpan.textContent = tmp.textContent;
-
         topMeta.appendChild(name);
         topMeta.appendChild(badge);
-        topMeta.appendChild(strengthSpan);
 
         const uname = document.createElement("span");
         uname.className = "muted";
@@ -269,45 +196,55 @@
     }
 
     genBtn.onclick = () => {
-      const len = +document.getElementById("passwordLength").value;
-      const letters = document.getElementById("letters").checked;
-      const numbers = document.getElementById("numbers").checked;
-      const symbols = document.getElementById("symbols").checked;
-      const pass = generatePassword(len, letters, numbers, symbols);
-      result.textContent = pass;
-      checkStrength(pass, result);
+      const pw = generatePassword(
+        parseInt(document.getElementById("length").value),
+        document.getElementById("letters").checked,
+        document.getElementById("numbers").checked,
+        document.getElementById("symbols").checked
+      );
+      generated.value = pw;
+    };
+
+    copyBtn.onclick = () => {
+      navigator.clipboard.writeText(generated.value);
     };
 
     saveBtn.onclick = async () => {
-      if (!result.textContent) return alert("Generate or import a password first.");
-      if (!passName.value.trim()) return alert("Enter a name.");
+      const name = document.getElementById("siteName").value;
+      const user = document.getElementById("username").value;
+      const pw = generated.value;
+      if (!name || !pw) return;
 
-      const choice = confirm("Save to Account (OK) or Local (Cancel)?");
-      const data = { name: passName.value, username: usernameField.value, password: result.textContent, location: choice ? "Account" : "Local" };
-
+      const choice = confirm("Save to Account? Cancel = Local");
       if (choice) {
-        await addDoc(collection(db, "passwords"), data);
+        await addDoc(collection(db, "passwords"), { name, username: user, password: pw });
       } else {
         let arr = JSON.parse(localStorage.getItem("passwords") || "[]");
-        arr.push(data);
+        arr.push({ name, username: user, password: pw });
         localStorage.setItem("passwords", JSON.stringify(arr));
       }
       await refreshList();
     };
 
     importBtn.onclick = async () => {
-      const pass = prompt("Enter password");
-      if (!pass) return;
-      const name = prompt("Enter name");
-      if (!name) return;
-      const uname = prompt("Enter username (optional)");
-      result.textContent = pass;
-      passName.value = name;
-      usernameField.value = uname || "";
-      checkStrength(pass, result);
+      const name = document.getElementById("importName").value;
+      const user = document.getElementById("importUser").value;
+      const pw = document.getElementById("importPass").value;
+      if (!name || !pw) return;
+
+      const choice = confirm("Save to Account? Cancel = Local");
+      if (choice) {
+        await addDoc(collection(db, "passwords"), { name, username: user, password: pw });
+      } else {
+        let arr = JSON.parse(localStorage.getItem("passwords") || "[]");
+        arr.push({ name, username: user, password: pw });
+        localStorage.setItem("passwords", JSON.stringify(arr));
+      }
+      await refreshList();
     };
 
     search.oninput = refreshList;
+
     refreshList();
   </script>
 </body>
